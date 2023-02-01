@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 )
@@ -61,10 +62,15 @@ func generate() {
 		var tracks []Track
 		for _, c := range v {
 			tracks = append(tracks, Track{
-				Name:   c,
+				Name:   filepath.Base(c),
 				Length: -1,
 				URI:    getRawFile(k.Host, c),
-				Tags:   nil,
+				Tags: []Tag{
+					{
+						Name:  "group-title",
+						Value: k.Name,
+					},
+				},
 			})
 		}
 
