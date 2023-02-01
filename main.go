@@ -163,8 +163,8 @@ func getLocation(rawUrl string) string {
 		return rawUrl
 	}
 
-	if resp.StatusCode == 302 {
-		return resp.Header.Get("Location")
+	if resp.StatusCode == 200 {
+		return resp.Request.URL.String()
 	}
 	return rawUrl
 }
