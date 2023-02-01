@@ -1,5 +1,8 @@
 #sub.yaml
 folders:
+  - name: '君子盟'
+    host: 'http://alist.xiaoya.pro'
+    path: '/每日更新/电视剧/国产剧/君子盟'
   - name: '三体'
     host: 'http://alist.xiaoya.pro'
     path: '/每日更新/电视剧/国产剧/三体'
