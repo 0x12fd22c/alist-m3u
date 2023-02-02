@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
+	"sort"
 	"sync"
 )
 
@@ -64,7 +64,7 @@ func generate() {
 			tracks = append(tracks, Track{
 				Name:   filepath.Base(c),
 				Length: -1,
-				URI:    getRawFile(k.Host, c),
+				URI:    fmt.Sprintf("https://raw.popeyelau.repl.co/?r=%s%s", k.Host, c),
 				Tags: []Tag{
 					{
 						Name:  "group-title",
@@ -73,6 +73,10 @@ func generate() {
 				},
 			})
 		}
+
+		sort.Slice(tracks, func(i, j int) bool {
+			return tracks[i].Name > tracks[j].Name
+		})
 
 		playlist := Playlist{Tracks: tracks}
 		reader, err := Marshall(playlist)
@@ -131,50 +135,6 @@ func getDir(folder Folder) {
 	}
 }
 
-func getRawFile(host, path string) string {
-	client := &http.Client{}
-	target := fmt.Sprintf("%s/api/fs/get", host)
-	var jsonData = []byte(fmt.Sprintf(`{
-		"path": "%s"
-	}`, path))
-	req, err := http.NewRequest("POST", target, bytes.NewBuffer(jsonData))
-	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
-	req.Header.Set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 5_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9B179 Safari/7534.48.3")
-
-	if err != nil {
-		return ""
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return ""
-	}
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return ""
-	}
-	rawUrl := gjson.GetBytes(respBody, "data.raw_url").String()
-	return getLocation(rawUrl)
-}
-
-func getLocation(rawUrl string) string {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", rawUrl, strings.NewReader(""))
-	req.Header.Set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 5_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9B179 Safari/7534.48.3")
-
-	if err != nil {
-		return rawUrl
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return rawUrl
-	}
-
-	if resp.StatusCode == 200 {
-		return resp.Request.URL.String()
-	}
-	return rawUrl
-}
-
 // Playlist is a type that represents an m3u playlist containing 0 or more tracks
 type Playlist struct {
 	Tracks []Track
@@ -210,7 +170,7 @@ func MarshallInto(p Playlist, into *bufio.Writer) error {
 	into.WriteString("#EXTM3U\n")
 	for _, track := range p.Tracks {
 		into.WriteString("#EXTINF:")
-		into.WriteString(fmt.Sprintf("%d ", track.Length))
+		into.WriteString(fmt.Sprintf("%d, ", track.Length))
 		for i := range track.Tags {
 			if i == len(track.Tags)-1 {
 				into.WriteString(fmt.Sprintf("%s=%q", track.Tags[i].Name, track.Tags[i].Value))
@@ -218,7 +178,9 @@ func MarshallInto(p Playlist, into *bufio.Writer) error {
 			}
 			into.WriteString(fmt.Sprintf("%s=%q ", track.Tags[i].Name, track.Tags[i].Value))
 		}
-		into.WriteString(", ")
+		if len(track.Tags) > 0 {
+			into.WriteString(", ")
+		}
 
 		into.WriteString(fmt.Sprintf("%s\n%s\n", track.Name, track.URI))
 	}
