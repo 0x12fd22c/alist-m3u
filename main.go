@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+	"time"
 )
 
 var groups map[Folder][]string
@@ -51,6 +52,7 @@ func main() {
 	}
 	wg.Wait()
 	generate()
+	readme()
 }
 
 func generate() {
@@ -90,8 +92,26 @@ func generate() {
 			fmt.Println(err)
 			return
 		}
+
 	}
 
+}
+
+func readme() {
+	file, err := os.Create("./README.md")
+	if err != nil {
+		return
+	}
+	w := bufio.NewWriter(file)
+	w.WriteString(time.Now().Format("2006-01-02-15:04:05"))
+	w.WriteString("\n")
+	for k, v := range groups {
+		if len(v) == 0 {
+			continue
+		}
+		w.WriteString(fmt.Sprintf("\n- [%v](./%s.m3u)", k.Name, k.Name))
+	}
+	w.Flush()
 }
 
 func getDir(folder Folder) {
